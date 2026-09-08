@@ -1,0 +1,1411 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FiveM Admin Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root{
+  --bg:#0d0f17;--surface:#151820;--surface2:#1e2130;--surface3:#252840;
+  --border:#2a2d3e;--border2:#363a52;
+  --accent:#4f8ef7;--accent-dim:#1a2d5a;
+  --green:#22c97a;--green-dim:#0d3320;
+  --red:#f25c5c;--red-dim:#3a1515;
+  --amber:#f5a623;--amber-dim:#3a2800;
+  --purple:#a78bfa;
+  --text:#e8eaf0;--muted:#6b7191;--muted2:#4a4f6a;
+  --mono:'JetBrains Mono',monospace;
+  --sans:'Inter',sans-serif;
+  --radius:6px;--radius-lg:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+input,select,button{font-family:var(--sans)}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--surface)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+
+/* ── LOGIN ── */
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:var(--bg)}
+.login-box{width:360px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:2.5rem}
+.login-logo{font-size:28px;font-weight:600;color:var(--accent);margin-bottom:4px;letter-spacing:-0.5px}
+.login-sub{font-size:13px;color:var(--muted);margin-bottom:2rem}
+.login-box label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px;margin-top:16px}
+.login-box input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);padding:10px 12px;font-size:14px;outline:none;transition:border .15s}
+.login-box input:focus{border-color:var(--accent)}
+.login-btn{width:100%;margin-top:20px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);padding:11px;font-size:14px;font-weight:500;cursor:pointer;transition:opacity .15s}
+.login-btn:hover{opacity:.85}
+.login-err{color:var(--red);font-size:13px;margin-top:10px;display:none}
+
+/* ── APP SHELL ── */
+#app{display:none;flex:1;flex-direction:row;height:100vh;overflow:hidden}
+
+/* ── SIDEBAR ── */
+#sidebar{width:220px;min-width:220px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto}
+.sidebar-logo{padding:20px 16px 12px;font-size:16px;font-weight:600;color:var(--accent);letter-spacing:-0.3px;border-bottom:1px solid var(--border)}
+.sidebar-logo span{display:block;font-size:11px;color:var(--muted);font-weight:400;margin-top:2px}
+.sidebar-user{padding:10px 16px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--border)}
+.nav-section{padding:8px 10px 4px;font-size:10px;color:var(--muted2);text-transform:uppercase;letter-spacing:.08em;margin-top:4px}
+.nav-btn{display:flex;align-items:center;gap:9px;width:100%;padding:8px 16px;font-size:13px;color:var(--muted);background:none;border:none;cursor:pointer;text-align:left;border-radius:0;transition:background .1s,color .1s}
+.nav-btn:hover{background:var(--surface2);color:var(--text)}
+.nav-btn.active{background:var(--accent-dim);color:var(--accent);font-weight:500}
+.nav-btn .nav-icon{font-size:15px;width:18px;text-align:center}
+.sidebar-bottom{margin-top:auto;padding:12px 10px;border-top:1px solid var(--border)}
+.logout-btn{width:100%;padding:8px 16px;background:none;border:1px solid var(--border);border-radius:var(--radius);color:var(--muted);font-size:12px;cursor:pointer;transition:all .15s}
+.logout-btn:hover{border-color:var(--red);color:var(--red)}
+
+/* ── CONTENT ── */
+#content{flex:1;overflow-y:auto;display:flex;flex-direction:column}
+.page{display:none;flex-direction:column;height:100%;padding:0}
+.page.active{display:flex}
+.page-header{padding:20px 24px 16px;border-bottom:1px solid var(--border);background:var(--surface)}
+.page-title{font-size:18px;font-weight:600;letter-spacing:-0.3px}
+.page-sub{font-size:13px;color:var(--muted);margin-top:3px}
+.page-body{padding:20px 24px;flex:1;overflow-y:auto}
+
+/* ── METRICS ── */
+.metrics{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+.metric{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;flex:1;min-width:120px}
+.metric-label{font-size:11px;color:var(--muted);margin-bottom:6px}
+.metric-value{font-size:22px;font-weight:600;letter-spacing:-0.5px}
+.metric-value.green{color:var(--green)}
+.metric-value.red{color:var(--red)}
+.metric-value.blue{color:var(--accent)}
+.metric-value.amber{color:var(--amber)}
+
+/* ── FILTERS ── */
+.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+.filter-input{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);padding:8px 12px;font-size:13px;outline:none;min-width:180px;flex:1;transition:border .15s}
+.filter-input:focus{border-color:var(--accent)}
+.filter-select{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);padding:8px 12px;font-size:13px;outline:none;cursor:pointer}
+.filter-btn{padding:8px 14px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:12px;cursor:pointer;white-space:nowrap;transition:all .15s}
+.filter-btn.active{background:var(--accent-dim);color:var(--accent);border-color:var(--accent)}
+.filter-btn:hover:not(.active){color:var(--text)}
+
+/* ── TABLE ── */
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{padding:10px 12px;text-align:left;font-size:10px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border);background:var(--surface2);white-space:nowrap;cursor:pointer;user-select:none}
+.tbl th:hover{color:var(--text)}
+.tbl td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:var(--surface2)}
+.tbl tr.flag-row td{background:var(--red-dim)}
+.no-data{padding:3rem;text-align:center;color:var(--muted);font-size:13px}
+.table-count{font-size:12px;color:var(--muted);margin-bottom:10px}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:500;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.badge-add{background:var(--green-dim);color:var(--green)}
+.badge-remove{background:var(--red-dim);color:var(--red)}
+.badge-move{background:#2d1f4a;color:var(--purple)}
+.badge-joined{background:var(--green-dim);color:var(--green)}
+.badge-left{background:var(--red-dim);color:var(--red)}
+.badge-money{background:var(--accent-dim);color:var(--accent)}
+.badge-death{background:var(--red-dim);color:var(--red)}
+.badge-flag{background:var(--amber-dim);color:var(--amber)}
+.badge-info{background:var(--surface3);color:var(--muted)}
+
+/* ── MONO TEXT ── */
+.mono{font-family:var(--mono);font-size:11px}
+.ts{font-family:var(--mono);font-size:11px;color:var(--muted)}
+
+/* ── UPLOAD PAGE ── */
+.drop-zone{border:2px dashed var(--border2);border-radius:var(--radius-lg);padding:3rem 2rem;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface2)}
+.drop-zone:hover,.drop-zone.drag{border-color:var(--accent);background:var(--accent-dim)}
+.drop-zone h3{font-size:16px;margin-bottom:8px;color:var(--text)}
+.drop-zone p{font-size:13px;color:var(--muted)}
+.drop-zone input{display:none}
+.upload-btn{display:inline-block;margin-top:16px;padding:10px 20px;background:var(--accent);color:#fff;border-radius:var(--radius);font-size:13px;font-weight:500;cursor:pointer;border:none;transition:opacity .15s}
+.upload-btn:hover{opacity:.85}
+.progress-bar{height:4px;background:var(--border);border-radius:2px;margin:12px 0;overflow:hidden;display:none}
+.progress-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .3s}
+.status-log{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;font-family:var(--mono);font-size:11px;color:var(--muted);max-height:200px;overflow-y:auto;margin-top:12px;display:none}
+
+/* ── CHARTS ── */
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px}
+.chart-title{font-size:13px;font-weight:500;margin-bottom:12px;color:var(--muted)}
+.chart-wrap{position:relative;height:220px}
+
+/* ── FLAG BOXES ── */
+.flag-box{background:var(--red-dim);border-left:3px solid var(--red);border-radius:0 var(--radius) var(--radius) 0;padding:10px 14px;margin-bottom:8px;font-size:13px}
+.flag-box strong{color:var(--red)}
+.info-box{background:var(--accent-dim);border-left:3px solid var(--accent);border-radius:0 var(--radius) var(--radius) 0;padding:10px 14px;margin-bottom:8px;font-size:13px}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:20px}
+.tab-btn{padding:10px 16px;font-size:13px;color:var(--muted);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:500}
+.tab-btn:hover:not(.active){color:var(--text)}
+.tab-pane{display:none}
+.tab-pane.active{display:block}
+
+/* ── PLAYER CARD ── */
+.player-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:20px}
+.player-name{font-size:22px;font-weight:600;letter-spacing:-0.5px;margin-bottom:4px}
+.player-meta{display:flex;flex-wrap:wrap;gap:16px;margin-top:12px}
+.player-meta-item{font-size:12px}
+.player-meta-item .lbl{color:var(--muted);display:block;margin-bottom:2px}
+.player-meta-item .val{font-family:var(--mono);font-size:12px;color:var(--text)}
+
+/* ── REFUNDS ── */
+.refund-pair{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;margin-bottom:8px}
+.refund-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.refund-amount{font-size:18px;font-weight:600;color:var(--amber)}
+.refund-player{font-size:13px;color:var(--text);font-weight:500}
+.refund-timeline{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--muted)}
+.refund-arrow{color:var(--green);font-weight:600}
+
+/* ── PAGING ── */
+.pager{display:flex;gap:6px;align-items:center;margin-top:12px;justify-content:flex-end}
+.page-btn{padding:5px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);color:var(--muted);font-size:12px;cursor:pointer}
+.page-btn:hover{border-color:var(--accent);color:var(--accent)}
+.page-btn.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
+.page-info{font-size:12px;color:var(--muted)}
+
+@media(max-width:768px){
+  #sidebar{display:none}
+  .charts-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+     LOGIN
+══════════════════════════════════════════ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">⬡ FiveM Admin</div>
+    <div class="login-sub">Server administration dashboard</div>
+    <label>Username</label>
+    <input type="text" id="login-user" placeholder="username" autocomplete="username">
+    <label>Password</label>
+    <input type="password" id="login-pass" placeholder="password" autocomplete="current-password">
+    <button class="login-btn" onclick="doLogin()">Sign in</button>
+    <div class="login-err" id="login-err">Invalid username or password.</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     APP
+══════════════════════════════════════════ -->
+<div id="app">
+
+  <!-- SIDEBAR -->
+  <nav id="sidebar">
+    <div class="sidebar-logo">⬡ FiveM Admin<span id="sidebar-user"></span></div>
+    <div class="nav-section">Main</div>
+    <button class="nav-btn active" onclick="nav('upload')" id="nav-upload"><span class="nav-icon">📤</span>Upload Logs</button>
+    <button class="nav-btn" onclick="nav('overview')" id="nav-overview"><span class="nav-icon">📊</span>Overview</button>
+    <div class="nav-section">Economy</div>
+    <button class="nav-btn" onclick="nav('money')" id="nav-money"><span class="nav-icon">💰</span>Money</button>
+    <button class="nav-btn" onclick="nav('refunds')" id="nav-refunds"><span class="nav-icon">🔄</span>Mechanic Refunds</button>
+    <button class="nav-btn" onclick="nav('inventory')" id="nav-inventory"><span class="nav-icon">📦</span>Inventory</button>
+    <button class="nav-btn" onclick="nav('boosting')" id="nav-boosting"><span class="nav-icon">🚗</span>Boosting</button>
+    <button class="nav-btn" onclick="nav('heistrep')" id="nav-heistrep"><span class="nav-icon">🏆</span>Heist Rep</button>
+    <div class="nav-section">Players</div>
+    <button class="nav-btn" onclick="nav('connections')" id="nav-connections"><span class="nav-icon">🚪</span>Connections</button>
+    <button class="nav-btn" onclick="nav('deaths')" id="nav-deaths"><span class="nav-icon">💀</span>Deaths</button>
+    <button class="nav-btn" onclick="nav('calls')" id="nav-calls"><span class="nav-icon">🚨</span>911 Calls</button>
+    <button class="nav-btn" onclick="nav('player')" id="nav-player"><span class="nav-icon">🔍</span>Player Search</button>
+    <div class="nav-section">Security</div>
+    <button class="nav-btn" onclick="nav('anticheat')" id="nav-anticheat"><span class="nav-icon">🛡️</span>Anticheat</button>
+    <div class="sidebar-bottom">
+      <button class="logout-btn" onclick="doLogout()">Sign out</button>
+    </div>
+  </nav>
+
+  <!-- CONTENT -->
+  <div id="content">
+
+    <!-- UPLOAD -->
+    <div class="page active" id="page-upload">
+      <div class="page-header"><div class="page-title">Upload Logs</div><div class="page-sub">Drop your FiveManage CSV exports — old and new formats supported</div></div>
+      <div class="page-body">
+        <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()" ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+          <div style="font-size:36px;margin-bottom:12px">📂</div>
+          <h3>Drop CSV files here</h3>
+          <p>Or click to browse — select multiple files at once</p>
+          <input type="file" id="file-input" accept=".csv" multiple onchange="handleFiles(this.files)">
+          <div><button class="upload-btn" onclick="event.stopPropagation();document.getElementById('file-input').click()">Browse files</button></div>
+        </div>
+        <div class="progress-bar" id="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+        <div class="status-log" id="status-log"></div>
+        <div id="upload-summary" style="margin-top:16px"></div>
+      </div>
+    </div>
+
+    <!-- OVERVIEW -->
+    <div class="page" id="page-overview">
+      <div class="page-header"><div class="page-title">Overview</div><div class="page-sub">Summary of all loaded log data</div></div>
+      <div class="page-body">
+        <div class="metrics" id="ov-metrics"></div>
+        <div class="charts-grid">
+          <div class="chart-card"><div class="chart-title">Money over time</div><div class="chart-wrap"><canvas id="chart-money"></canvas></div></div>
+          <div class="chart-card"><div class="chart-title">Player connections</div><div class="chart-wrap"><canvas id="chart-conn"></canvas></div></div>
+          <div class="chart-card"><div class="chart-title">Top items moved</div><div class="chart-wrap"><canvas id="chart-items"></canvas></div></div>
+          <div class="chart-card"><div class="chart-title">Deaths by cause</div><div class="chart-wrap"><canvas id="chart-deaths"></canvas></div></div>
+        </div>
+        <div id="ov-flags"></div>
+      </div>
+    </div>
+
+    <!-- MONEY -->
+    <div class="page" id="page-money">
+      <div class="page-header"><div class="page-title">Money</div><div class="page-sub">All money transactions — AddMoney, RemoveMoney, SetMoney</div></div>
+      <div class="page-body">
+        <div class="filters">
+          <input class="filter-input" id="money-q" placeholder="Search player, reason, citizen ID..." oninput="renderMoney()">
+          <select class="filter-select" id="money-op" onchange="renderMoney()"><option value="">All operations</option><option>AddMoney</option><option>RemoveMoney</option><option>SetMoney</option></select>
+          <select class="filter-select" id="money-type" onchange="renderMoney()"><option value="">All types</option><option>bank</option><option>cash</option></select>
+          <input class="filter-input" id="money-reason" placeholder="Reason..." oninput="renderMoney()" style="max-width:160px">
+          <input class="filter-input" id="money-min" type="number" placeholder="Min $" oninput="renderMoney()" style="max-width:90px">
+        </div>
+        <div class="table-count" id="money-count"></div>
+        <div class="table-wrap"><table class="tbl" id="money-tbl"><thead><tr><th>Time</th><th>Player</th><th>Citizen ID</th><th>Operation</th><th>Amount</th><th>Via</th><th>Balance After</th><th>Reason</th><th>Coords</th></tr></thead><tbody id="money-body"></tbody></table></div>
+        <div class="pager" id="money-pager"></div>
+      </div>
+    </div>
+
+    <!-- INVENTORY -->
+    <div class="page" id="page-inventory">
+      <div class="page-header"><div class="page-title">Inventory</div><div class="page-sub">All item add, remove and move events</div></div>
+      <div class="page-body">
+        <div class="filters">
+          <input class="filter-input" id="inv-q" placeholder="Search item, inventory ID..." oninput="renderInventory()">
+          <select class="filter-select" id="inv-action" onchange="renderInventory()"><option value="">All actions</option><option>Added</option><option>Removed</option><option>Moved</option></select>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer"><input type="checkbox" id="inv-illegal" onchange="renderInventory()"> Illegal only</label>
+        </div>
+        <div class="table-count" id="inv-count"></div>
+        <div class="table-wrap"><table class="tbl"><thead><tr><th>Time</th><th>Action</th><th>Item</th><th>Qty</th><th>Final Qty</th><th>Inventory</th><th>Label</th><th>Illegal</th></tr></thead><tbody id="inv-body"></tbody></table></div>
+        <div class="pager" id="inv-pager"></div>
+      </div>
+    </div>
+
+    <!-- DEATHS -->
+    <div class="page" id="page-deaths">
+      <div class="page-header"><div class="page-title">Deaths</div><div class="page-sub">All player death events</div></div>
+      <div class="page-body">
+        <div class="filters">
+          <input class="filter-input" id="death-q" placeholder="Search victim, killer..." oninput="renderDeaths()">
+          <select class="filter-select" id="death-type" onchange="renderDeaths()"><option value="">All types</option><option value="pvp">PvP only</option><option value="suicide">Suicides only</option></select>
+        </div>
+        <div class="table-count" id="death-count"></div>
+        <div class="table-wrap"><table class="tbl"><thead><tr><th>Time</th><th>Victim</th><th>Citizen ID</th><th>Gang</th><th>Killer</th><th>Weapon</th><th>Type</th><th>Coords</th></tr></thead><tbody id="death-body"></tbody></table></div>
+        <div class="pager" id="death-pager"></div>
+      </div>
+    </div>
+
+    <!-- CONNECTIONS -->
+    <div class="page" id="page-connections">
+      <div class="page-header"><div class="page-title">Connections</div><div class="page-sub">Player joins and disconnections</div></div>
+      <div class="page-body">
+        <div class="filters">
+          <input class="filter-input" id="conn-q" placeholder="Search player, steam hex..." oninput="renderConnections()">
+          <select class="filter-select" id="conn-type" onchange="renderConnections()"><option value="">All events</option><option>Joined</option><option>Left</option></select>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer"><input type="checkbox" id="conn-crash" onchange="renderConnections()"> Crashes only</label>
+        </div>
+        <div class="table-count" id="conn-count"></div>
+        <div class="table-wrap"><table class="tbl"><thead><tr><th>Time</th><th>Player</th><th>Citizen ID</th><th>Event</th><th>Reason</th><th>Steam</th><th>Coords</th></tr></thead><tbody id="conn-body"></tbody></table></div>
+        <div class="pager" id="conn-pager"></div>
+      </div>
+    </div>
+
+    <!-- HEIST REP -->
+    <div class="page" id="page-heistrep">
+      <div class="page-header"><div class="page-title">Heist Rep</div><div class="page-sub">Reputation gained from activities</div></div>
+      <div class="page-body">
+        <div class="filters">
+          <input class="filter-input" id="hr-q" placeholder="Search player, source..." oninput="renderHeistrep()">
+        </div>
+        <div class="metrics" id="hr-metrics"></div>
+        <div class="table-count" id="hr-count"></div>
+        <div class="table-wrap"><table class="tbl"><thead><tr><th>Time</th><th>Player</th><th>Citizen ID</th><th>Rep Gained</th><th>Source</th><th>Total Rep</th></tr></thead><tbody id="hr-body"></tbody></table></div>
+        <div class="pager" id="hr-pager"></div>
+      </div>
+    </div>
+
+    <!-- BOOSTING -->
+    <div class="page" id="page-boosting">
+      <div class="page-header"><div class="page-title">Boosting</div><div class="page-sub">Vehicle boosting contracts</div></div>
+      <div class="page-body">
+        <div class="filters">
+          <input class="filter-input" id="boost-q" placeholder="Search player, vehicle..." oninput="renderBoosting()">
+        </div>
+        <div class="table-count" id="boost-count"></div>
+        <div class="table-wrap"><table class="tbl"><thead><tr><th>Time</th><th>Action</th><th>Player</th><th>Vehicle</th><th>Class</th><th>Payout</th><th>Rep</th><th>Contract</th></tr></thead><tbody id="boost-body"></tbody></table></div>
+        <div class="pager" id="boost-pager"></div>
+      </div>
+    </div>
+
+    <!-- 911 CALLS -->
+    <div class="page" id="page-calls">
+      <div class="page-header"><div class="page-title">911 Calls</div><div class="page-sub">Emergency calls logged from players</div></div>
+      <div class="page-body">
+        <div class="filters">
+          <input class="filter-input" id="calls-q" placeholder="Search caller, message..." oninput="renderCalls()">
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer"><input type="checkbox" id="calls-anon" onchange="renderCalls()"> Anonymous only</label>
+        </div>
+        <div class="table-count" id="calls-count"></div>
+        <div class="table-wrap"><table class="tbl"><thead><tr><th>Time</th><th>Caller</th><th>Citizen ID</th><th>Anonymous</th><th>Message</th><th>Coords</th></tr></thead><tbody id="calls-body"></tbody></table></div>
+        <div class="pager" id="calls-pager"></div>
+      </div>
+    </div>
+
+    <!-- PLAYER SEARCH -->
+    <div class="page" id="page-player">
+      <div class="page-header"><div class="page-title">Player Search</div><div class="page-sub">Full profile across all tables</div></div>
+      <div class="page-body">
+        <div class="filters" style="margin-bottom:20px">
+          <input class="filter-input" id="player-q" placeholder="Player name or citizen ID..." oninput="renderPlayer()">
+        </div>
+        <div id="player-card"></div>
+        <div class="tabs" id="player-tabs" style="display:none">
+          <button class="tab-btn active" onclick="switchTab('pt-money')">💰 Money</button>
+          <button class="tab-btn" onclick="switchTab('pt-inv')">📦 Inventory</button>
+          <button class="tab-btn" onclick="switchTab('pt-deaths')">💀 Deaths</button>
+          <button class="tab-btn" onclick="switchTab('pt-conn')">🚪 Connections</button>
+          <button class="tab-btn" onclick="switchTab('pt-rep')">🏆 Heist Rep</button>
+          <button class="tab-btn" onclick="switchTab('pt-boost')">🚗 Boosting</button>
+        </div>
+        <div class="tab-pane active" id="pt-money"></div>
+        <div class="tab-pane" id="pt-inv"></div>
+        <div class="tab-pane" id="pt-deaths"></div>
+        <div class="tab-pane" id="pt-conn"></div>
+        <div class="tab-pane" id="pt-rep"></div>
+        <div class="tab-pane" id="pt-boost"></div>
+      </div>
+    </div>
+
+    <!-- ANTICHEAT -->
+    <div class="page" id="page-anticheat">
+      <div class="page-header"><div class="page-title">Anticheat</div><div class="page-sub">Flagged players and security events</div></div>
+      <div class="page-body">
+        <div id="ac-content"></div>
+      </div>
+    </div>
+
+    <!-- REFUNDS -->
+    <div class="page" id="page-refunds">
+      <div class="page-header"><div class="page-title">Mechanic Refunds</div><div class="page-sub">RemoveMoney → AddMoney pairs via mechanic-system within 1 hour</div></div>
+      <div class="page-body">
+        <div class="filters">
+          <input class="filter-input" id="ref-q" placeholder="Search player..." oninput="renderRefunds()">
+          <input class="filter-input" id="ref-min" type="number" placeholder="Min $" oninput="renderRefunds()" style="max-width:90px">
+        </div>
+        <div class="metrics" id="ref-metrics"></div>
+        <div id="ref-content"></div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /app -->
+
+<script>
+// ══════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════
+const USERS = { admin:'admin123', filippe:'password' };
+let currentUser = null;
+
+function doLogin(){
+  const u=document.getElementById('login-user').value.trim();
+  const p=document.getElementById('login-pass').value;
+  if(USERS[u] && USERS[u]===p){
+    currentUser=u;
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('app').style.display='flex';
+    document.getElementById('sidebar-user').textContent=u;
+    sessionStorage.setItem('fm-user',u);
+  } else {
+    document.getElementById('login-err').style.display='block';
+  }
+}
+
+function doLogout(){
+  sessionStorage.removeItem('fm-user');
+  location.reload();
+}
+
+document.getElementById('login-pass').addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
+document.getElementById('login-user').addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('login-pass').focus(); });
+
+// Auto-login from session
+if(sessionStorage.getItem('fm-user')){
+  const u=sessionStorage.getItem('fm-user');
+  if(USERS[u]){
+    currentUser=u;
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('app').style.display='flex';
+    document.getElementById('sidebar-user').textContent=u;
+  }
+}
+
+// ══════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════
+let currentPage='upload';
+function nav(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.getElementById('nav-'+page).classList.add('active');
+  currentPage=page;
+  if(page==='overview') buildOverview();
+  if(page==='anticheat') renderAnticheat();
+  if(page==='refunds') renderRefunds();
+}
+
+// ══════════════════════════════════════════
+// DATA STORE
+// ══════════════════════════════════════════
+let DB = {
+  inventory:[], money:[], connections:[], deaths:[],
+  heistrep:[], boosting:[], calls:[], anticheat:[], other:[]
+};
+
+// ══════════════════════════════════════════
+// CSV PARSING — BOTH FORMATS
+// ══════════════════════════════════════════
+function detectFormat(row){
+  // New format: col[4] is ISO timestamp, col[5] is JSON
+  if(row.length>=6 && /^\d{4}-\d{2}-\d{2}T/.test(row[4]) && row[5] && row[5].trim().startsWith('{')){
+    return 'new';
+  }
+  return 'old';
+}
+
+function parseMeta(str){
+  if(!str) return {};
+  // Try JSON (new format)
+  try{ return JSON.parse(str); }catch(e){}
+  // Fallback: single-quote dict (old format)
+  const obj={};
+  const rx = /['"]([\w]+)['"]\s*:\s*['"]([^'"]*)['"]/g;
+  let m;
+  while((m=rx.exec(str))!==null){
+    // map keys
+    const k=m[1], v=m[2];
+    if(k==='service') obj.service=v;
+    else if(k==='realResource') obj.realResource=v;
+    else if(k==='serverSessionId') obj.serverSessionId=v;
+    else if(k==='tag_1') obj.tag_1=v;
+    else if(k==='tag_2') obj.tag_2=v;
+    else if(k==='tag_3') obj.tag_3=v;
+  }
+  return obj;
+}
+
+function extractFields(row, fmt){
+  if(fmt==='new'){
+    return {
+      timestamp:   row[4]||'',
+      log_entry_id:row[7]||'',
+      severity:    row[3]||'',
+      message:     row[2]||'',
+      meta_str:    row[5]||'',
+    };
+  } else {
+    return {
+      timestamp:   row[0]||'',
+      log_entry_id:row[2]||'',
+      severity:    row[5]||'',
+      message:     row[7]||'',
+      meta_str:    row[8]||'',
+    };
+  }
+}
+
+function parseCoords(msg){
+  let m;
+  m=msg.match(/vec3\(([-\d.]+),\s*([-\d.]+),\s*([-\d.]+)\)/);
+  if(m) return {x:+m[1],y:+m[2],z:+m[3]};
+  m=msg.match(/Position:\s*([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)/);
+  if(m) return {x:+m[1],y:+m[2],z:+m[3]};
+  m=msg.match(/"x"\s*:\s*([-\d.]+).*?"y"\s*:\s*([-\d.]+)/s);
+  if(m) return {x:+m[1],y:+m[2],z:0};
+  m=msg.match(/coords=([-\d.]+),([-\d.]+),([-\d.]+)/);
+  if(m) return {x:+m[1],y:+m[2],z:+m[3]};
+  return null;
+}
+
+function parseRows(rows){
+  const fmt = detectFormat(rows[0]||[]);
+  const base=[];
+
+  for(const row of rows){
+    const f=extractFields(row,fmt);
+    const meta=parseMeta(f.meta_str);
+    base.push({
+      timestamp:   f.timestamp,
+      log_id:      f.log_entry_id,
+      severity:    f.severity,
+      service:     meta.service||meta.Service||'',
+      real_resource:meta.realResource||'',
+      session_id:  meta.serverSessionId||'',
+      tag1:        String(meta.tag_1||''),
+      tag2:        String(meta.tag_2||''),
+      tag3:        String(meta.tag_3||''),
+      msg:         f.message,
+    });
+  }
+  return {base, fmt};
+}
+
+function classifyAndParse(base){
+  const INV  = new Set(['addItem','removeItem','moveItem','playerRemoveItem']);
+  const MONEY= new Set(['playermoney','transaction','f4wallet']);
+  const CONN = new Set(['joinleave','NewPlayer']);
+  const DEATH= new Set(['death','deathVR']);
+  const AC   = new Set(['anticheat','sk1nny_ac']);
+
+  const inventory=[], money=[], connections=[], deaths=[];
+  const heistrep=[], boosting=[], calls=[], anticheat=[], other=[];
+
+  for(const r of base){
+    const s=r.service, msg=r.msg;
+
+    if(INV.has(s)){
+      const am=msg.match(/(?:Added|Removed) Amount\s+(\d+)/);
+      const fm=msg.match(/Final Amount\s+(\d+)/);
+      const subm=msg.match(/Action\s+([^\|]+)/);
+      const fromm=msg.match(/Moved From Slot\s+(\d+)/);
+      const tom=msg.match(/To slot\s+(\d+)/);
+      const actm=msg.match(/^Item\s+(Added|Removed|Moved)/);
+      let illegal=false;
+      let label='';
+      try{
+        const dm=msg.match(/Data\s+(\{[\s\S]+)/);
+        if(dm){
+          const blob=JSON.parse(dm[1]);
+          const data=blob.data||blob;
+          label=data.label||'';
+          illegal=/illegal/i.test(data.description||'');
+        }
+      }catch(e){}
+      inventory.push({
+        ...r,
+        inventory_id: r.tag1,
+        item_name:    r.tag2,
+        item_action:  actm?actm[1]:(s==='addItem'?'Added':s==='removeItem'?'Removed':'Moved'),
+        sub_action:   subm?subm[1].trim():'',
+        item_amount:  am?+am[1]:null,
+        item_final:   fm?+fm[1]:null,
+        from_slot:    fromm?+fromm[1]:null,
+        to_slot:      tom?+tom[1]:null,
+        item_label:   label,
+        is_illegal:   illegal,
+      });
+    }
+    else if(MONEY.has(s)){
+      const m=msg.match(/(AddMoney|RemoveMoney|SetMoney)\s*\|\s*(.+?)\s*\(citizenid:\s*([^\|]+)\s*\|\s*id:\s*(\d+)\)\s*\$([\d.]+)\s*\((\w+)\)\s*current balance:\s*\$([\d.]+)\s*Reason:\s*([^\|]*)/);
+      const coords=parseCoords(msg);
+      money.push({
+        ...r,
+        money_op:    m?m[1]:'',
+        player_name: m?m[2].trim():'',
+        citizen_id:  m?m[3].trim():'',
+        server_uid:  m?+m[4]:null,
+        money_amount:m?+m[5]:null,
+        money_type:  m?m[6]:'',
+        balance_after:m?+m[7]:null,
+        reason:      m?m[8].trim():'',
+        coord_x:     coords?coords.x:null,
+        coord_y:     coords?coords.y:null,
+      });
+    }
+    else if(CONN.has(s)){
+      const loaded=msg.match(/(?:Loaded|Flew in)\s*\|\s*(.+?)\s*\|\s*steam:([\w]+)\s*\|\s*\(([A-Z0-9]+)\s*\|\s*UID:\s*(\d+)/);
+      const dropped=msg.match(/Dropped\s*\|\s*(.+?)\s*\(steam:([\w]+)\s*\|\s*(\d+).*?\)\s*left\.\s*Reason:\s*([^\|]+)/);
+      const disc=msg.match(/<@(\d+)>/);
+      const coords=parseCoords(msg);
+      if(loaded){
+        connections.push({...r, player_name:loaded[1].trim(), steam_hex:'steam:'+loaded[2],
+          citizen_id:loaded[3], server_uid:+loaded[4], discord_id:disc?disc[1]:'',
+          event_type:'Joined', disconnect_reason:'', coord_x:coords?coords.x:null, coord_y:coords?coords.y:null,
+          raw_msg:msg});
+      } else if(dropped){
+        connections.push({...r, player_name:dropped[1].trim(), steam_hex:'steam:'+dropped[2],
+          citizen_id:'', server_uid:+dropped[3], discord_id:disc?disc[1]:'',
+          event_type:'Left', disconnect_reason:dropped[4].trim(), coord_x:coords?coords.x:null, coord_y:coords?coords.y:null,
+          raw_msg:msg});
+      } else {
+        connections.push({...r, player_name:'', steam_hex:'', citizen_id:'', server_uid:null,
+          discord_id:'', event_type:'', disconnect_reason:'', coord_x:null, coord_y:null, raw_msg:msg});
+      }
+    }
+    else if(DEATH.has(s)){
+      const vm=msg.match(/Player\s+(.+?)\s*\(UID:\s*(\d+)\s*\|\s*SSN:\s*([^\|]+)\s*\|\s*Gang:\s*([^\|]+)\s*\|/);
+      const cm=msg.match(/died from\s+(.+?)(?:\s+by\s+|\s*$)/);
+      const km=msg.match(/\bby\s+(.+?)\s*\(UID:\s*(\d+)\s*\|\s*SSN:\s*([^\|]+)/);
+      const coords=parseCoords(msg);
+      deaths.push({
+        ...r,
+        victim_name:    vm?vm[1].trim():'',
+        victim_uid:     vm?+vm[2]:null,
+        victim_cid:     vm?vm[3].trim():'',
+        victim_gang:    vm?vm[4].trim():'',
+        weapon_label:   cm?cm[1].trim():'',
+        killer_name:    km?km[1].trim():null,
+        killer_uid:     km?+km[2]:null,
+        killer_cid:     km?km[3].trim():null,
+        is_suicide:     !km,
+        is_vr:          s==='deathVR',
+        coord_x:        coords?coords.x:null,
+        coord_y:        coords?coords.y:null,
+      });
+    }
+    else if(s==='heistrep'){
+      const m=msg.match(/(\d+)\s*\|\s*(.+?)\s*\(([A-Z0-9]+)\)\s*received\s*([\d.]+)\s*heistrep\s*from\s*(.+?)(?:\.\s*Total now\s*([\d.]+))?(?:\s*\||\s*$)/);
+      const coords=parseCoords(msg);
+      heistrep.push({
+        ...r,
+        server_uid:  m?+m[1]:null,
+        player_name: m?m[2].trim():'',
+        citizen_id:  m?m[3]:'',
+        rep_gained:  m?+m[4]:null,
+        rep_source:  m?m[5].trim():'',
+        rep_total:   m&&m[6]?+m[6]:null,
+        coord_x:     coords?coords.x:null,
+        coord_y:     coords?coords.y:null,
+      });
+    }
+    else if(s==='boosting'){
+      const get=(pat)=>{ const m=msg.match(pat); return m?m[1].trim():null; };
+      boosting.push({
+        ...r,
+        boost_action:  msg.split('|')[0].trim(),
+        citizen_id:    get(/citizenid=([^\|]+)/),
+        player_name:   get(/alias=([^\|]+)/),
+        vehicle_class: get(/class=([^\|]+)/),
+        vehicle:       get(/vehicle=([^\|]+)/),
+        payout:        get(/payout=(\d+)/)?+get(/payout=(\d+)/):null,
+        rep:           get(/\brep=(\d+)/)?+get(/\brep=(\d+)/):null,
+        contract_id:   get(/contractId=(\d+)/),
+      });
+    }
+    else if(s==='jobs'){
+      const m=msg.match(/caller=(.+?)\s*\(cid=([^\)]+)\)\s*src=(\d+)\s*\|\s*anonymous=(true|false)\s*\|\s*coords=([-\d.,]+)\s*\|\s*message=(.+)/);
+      const coords_raw=m?m[5].split(','):[];
+      calls.push({
+        ...r,
+        caller_name:  m?m[1].trim():'',
+        citizen_id:   m?m[2]:'',
+        server_uid:   m?+m[3]:null,
+        is_anonymous: m?m[4]==='true':null,
+        coord_x:      coords_raw[0]?+coords_raw[0]:null,
+        coord_y:      coords_raw[1]?+coords_raw[1]:null,
+        call_message: m?m[6].trim():msg.substring(0,200),
+      });
+    }
+    else if(AC.has(s)){
+      const nm=msg.match(/Name:\s*(\S+)/);
+      const sm=msg.match(/steam:([\w]+)/);
+      const dm=msg.match(/<@(\d+)>/);
+      const sidm=msg.match(/Server ID[\s:*]+(\d+)/);
+      anticheat.push({
+        ...r,
+        flag_type:   msg.split('|')[0].trim(),
+        player_name: nm?nm[1]:'',
+        steam_hex:   sm?'steam:'+sm[1]:'',
+        discord_id:  dm?dm[1]:'',
+        server_uid:  sidm?+sidm[1]:null,
+        flag_detail: msg.substring(0,300),
+      });
+    }
+    else {
+      other.push(r);
+    }
+  }
+  return {inventory,money,connections,deaths,heistrep,boosting,calls,anticheat,other};
+}
+
+// ══════════════════════════════════════════
+// FILE UPLOAD
+// ══════════════════════════════════════════
+function handleDragOver(e){e.preventDefault();document.getElementById('drop-zone').classList.add('drag');}
+function handleDragLeave(e){document.getElementById('drop-zone').classList.remove('drag');}
+function handleDrop(e){e.preventDefault();document.getElementById('drop-zone').classList.remove('drag');handleFiles(e.dataTransfer.files);}
+
+function log(msg){
+  const el=document.getElementById('status-log');
+  el.style.display='block';
+  el.innerHTML+=`<div>${msg}</div>`;
+  el.scrollTop=el.scrollHeight;
+}
+
+function setProgress(pct){
+  document.getElementById('progress-bar').style.display='block';
+  document.getElementById('progress-fill').style.width=pct+'%';
+}
+
+async function handleFiles(files){
+  if(!files||!files.length) return;
+  const fileArr=Array.from(files);
+  document.getElementById('status-log').innerHTML='';
+  document.getElementById('status-log').style.display='block';
+  document.getElementById('upload-summary').innerHTML='';
+  DB={inventory:[],money:[],connections:[],deaths:[],heistrep:[],boosting:[],calls:[],anticheat:[],other:[]};
+
+  log(`📂 Found ${fileArr.length} file(s)...`);
+  setProgress(5);
+
+  let allBase=[];
+  for(let i=0;i<fileArr.length;i++){
+    const file=fileArr[i];
+    const text=await file.text();
+    const result=Papa.parse(text,{skipEmptyLines:true});
+    const rows=result.data.filter(r=>r.length>=6);
+    const {base}=parseRows(rows);
+    allBase=allBase.concat(base);
+    log(`   ✅ ${file.name}: ${rows.length.toLocaleString()} rows`);
+    setProgress(5+Math.round((i+1)/fileArr.length*60));
+  }
+
+  log(`\n🔧 Classifying ${allBase.length.toLocaleString()} rows...`);
+  setProgress(70);
+
+  // Sort all by timestamp
+  allBase.sort((a,b)=>b.timestamp.localeCompare(a.timestamp));
+
+  const tables=classifyAndParse(allBase);
+  setProgress(90);
+
+  Object.assign(DB,tables);
+
+  log(`\n📊 Results:`);
+  log(`   Inventory:   ${DB.inventory.length.toLocaleString()}`);
+  log(`   Money:       ${DB.money.length.toLocaleString()}`);
+  log(`   Connections: ${DB.connections.length.toLocaleString()}`);
+  log(`   Deaths:      ${DB.deaths.length.toLocaleString()}`);
+  log(`   Heist Rep:   ${DB.heistrep.length.toLocaleString()}`);
+  log(`   Boosting:    ${DB.boosting.length.toLocaleString()}`);
+  log(`   911 Calls:   ${DB.calls.length.toLocaleString()}`);
+  log(`   Anticheat:   ${DB.anticheat.length.toLocaleString()}`);
+  log(`\n✅ Done! Navigate using the sidebar.`);
+  setProgress(100);
+
+  document.getElementById('upload-summary').innerHTML=`
+    <div class="info-box" style="margin-top:12px">
+      ✅ <strong>${allBase.length.toLocaleString()} rows</strong> loaded from ${fileArr.length} file(s).
+      Use the sidebar to explore your data.
+    </div>`;
+}
+
+// ══════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════
+const PAGE_SIZE=100;
+function ts(t){return t?t.substring(0,19).replace('T',' '):'-';}
+function fmtMoney(v){return v!=null?'$'+Number(v).toLocaleString('en',{minimumFractionDigits:2,maximumFractionDigits:2}):'-';}
+function fmtCoord(x,y){return(x!=null&&y!=null)?`${x.toFixed(1)}, ${y.toFixed(1)}`:'';}
+function badge(text,cls){return `<span class="badge badge-${cls}">${text}</span>`;}
+
+function buildPager(total, page, onPage, containerId){
+  const pages=Math.ceil(total/PAGE_SIZE);
+  const el=document.getElementById(containerId);
+  if(pages<=1){el.innerHTML='';return;}
+  let html=`<span class="page-info">Page ${page} of ${pages} (${total.toLocaleString()} rows)</span>`;
+  if(page>1) html+=`<button class="page-btn" onclick="${onPage}(${page-1})">← Prev</button>`;
+  // show page buttons around current
+  for(let p=Math.max(1,page-2);p<=Math.min(pages,page+2);p++){
+    html+=`<button class="page-btn ${p===page?'active':''}" onclick="${onPage}(${p})">${p}</button>`;
+  }
+  if(page<pages) html+=`<button class="page-btn" onclick="${onPage}(${page+1})">Next →</button>`;
+  el.innerHTML=html;
+}
+
+function filterText(arr, q, fields){
+  if(!q) return arr;
+  const lq=q.toLowerCase();
+  return arr.filter(r=>fields.some(f=>{
+    const v=r[f];
+    return v!=null && String(v).toLowerCase().includes(lq);
+  }));
+}
+
+// ══════════════════════════════════════════
+// OVERVIEW
+// ══════════════════════════════════════════
+let charts={};
+function destroyChart(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+
+function buildOverview(){
+  const m=DB.money, inv=DB.inventory, conn=DB.connections, deaths=DB.deaths, ac=DB.anticheat;
+  const earned=m.filter(r=>r.money_op==='AddMoney').reduce((s,r)=>s+(r.money_amount||0),0);
+  const spent=m.filter(r=>r.money_op==='RemoveMoney').reduce((s,r)=>s+(r.money_amount||0),0);
+  const unique_players=[...new Set(conn.map(r=>r.player_name).filter(Boolean))].length;
+
+  document.getElementById('ov-metrics').innerHTML=`
+    <div class="metric"><div class="metric-label">Total Earned</div><div class="metric-value green">${fmtMoney(earned)}</div></div>
+    <div class="metric"><div class="metric-label">Total Spent</div><div class="metric-value red">${fmtMoney(spent)}</div></div>
+    <div class="metric"><div class="metric-label">Money Transactions</div><div class="metric-value blue">${m.length.toLocaleString()}</div></div>
+    <div class="metric"><div class="metric-label">Unique Players</div><div class="metric-value">${unique_players}</div></div>
+    <div class="metric"><div class="metric-label">Deaths</div><div class="metric-value red">${deaths.length}</div></div>
+    <div class="metric"><div class="metric-label">⚠️ AC Flags</div><div class="metric-value amber">${ac.length}</div></div>
+  `;
+
+  // Money by hour
+  destroyChart('chart-money');
+  const moneyByHour={};
+  m.forEach(r=>{
+    const h=r.timestamp.substring(0,13);
+    if(!moneyByHour[h]) moneyByHour[h]={add:0,rem:0};
+    if(r.money_op==='AddMoney') moneyByHour[h].add+=r.money_amount||0;
+    else if(r.money_op==='RemoveMoney') moneyByHour[h].rem+=r.money_amount||0;
+  });
+  const mKeys=Object.keys(moneyByHour).sort().slice(-48);
+  charts['chart-money']=new Chart(document.getElementById('chart-money'),{
+    type:'bar',
+    data:{labels:mKeys.map(k=>k.substring(5)),datasets:[
+      {label:'Earned',data:mKeys.map(k=>moneyByHour[k].add),backgroundColor:'#22c97a44',borderColor:'#22c97a',borderWidth:1,stack:'s'},
+      {label:'Spent',data:mKeys.map(k=>moneyByHour[k].rem),backgroundColor:'#f25c5c44',borderColor:'#f25c5c',borderWidth:1,stack:'s'},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#6b7191',font:{size:11}}}},
+      scales:{x:{ticks:{color:'#6b7191',font:{size:9},maxRotation:45},grid:{color:'#2a2d3e'}},y:{ticks:{color:'#6b7191',font:{size:10},callback:v=>'$'+(v/1000).toFixed(0)+'k'},grid:{color:'#2a2d3e'}}}}
+  });
+
+  // Connections by hour
+  destroyChart('chart-conn');
+  const connByHour={};
+  conn.forEach(r=>{
+    const h=r.timestamp.substring(0,13);
+    if(!connByHour[h]) connByHour[h]={j:0,l:0};
+    if(r.event_type==='Joined') connByHour[h].j++;
+    else if(r.event_type==='Left') connByHour[h].l++;
+  });
+  const cKeys=Object.keys(connByHour).sort().slice(-48);
+  charts['chart-conn']=new Chart(document.getElementById('chart-conn'),{
+    type:'line',
+    data:{labels:cKeys.map(k=>k.substring(5)),datasets:[
+      {label:'Joined',data:cKeys.map(k=>connByHour[k].j),borderColor:'#22c97a',backgroundColor:'#22c97a22',tension:.3,pointRadius:2},
+      {label:'Left',data:cKeys.map(k=>connByHour[k].l),borderColor:'#f25c5c',backgroundColor:'#f25c5c22',tension:.3,pointRadius:2},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#6b7191',font:{size:11}}}},
+      scales:{x:{ticks:{color:'#6b7191',font:{size:9},maxRotation:45},grid:{color:'#2a2d3e'}},y:{ticks:{color:'#6b7191',font:{size:10}},grid:{color:'#2a2d3e'}}}}
+  });
+
+  // Top items
+  destroyChart('chart-items');
+  const itemCounts={};
+  inv.forEach(r=>{if(r.item_name) itemCounts[r.item_name]=(itemCounts[r.item_name]||0)+(r.item_amount||1);});
+  const topItems=Object.entries(itemCounts).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  charts['chart-items']=new Chart(document.getElementById('chart-items'),{
+    type:'bar',
+    data:{labels:topItems.map(i=>i[0]),datasets:[{data:topItems.map(i=>i[1]),backgroundColor:'#4f8ef766',borderColor:'#4f8ef7',borderWidth:1}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{ticks:{color:'#6b7191',font:{size:9}},grid:{color:'#2a2d3e'}},y:{ticks:{color:'#6b7191',font:{size:10}},grid:{display:false}}}}
+  });
+
+  // Deaths by cause
+  destroyChart('chart-deaths');
+  const causeCounts={};
+  deaths.forEach(r=>{
+    const c=r.is_suicide?'Suicide/Falling':(r.weapon_label||'Unknown');
+    causeCounts[c]=(causeCounts[c]||0)+1;
+  });
+  const topCauses=Object.entries(causeCounts).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  charts['chart-deaths']=new Chart(document.getElementById('chart-deaths'),{
+    type:'doughnut',
+    data:{labels:topCauses.map(c=>c[0]),datasets:[{data:topCauses.map(c=>c[1]),backgroundColor:['#f25c5c','#f5a623','#4f8ef7','#22c97a','#a78bfa','#fb7185','#34d399','#60a5fa']}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#6b7191',font:{size:10},boxWidth:12}}}}
+  });
+
+  // AC flags
+  const flagsEl=document.getElementById('ov-flags');
+  if(ac.length>0){
+    flagsEl.innerHTML='<div style="margin-top:8px;font-size:13px;font-weight:500;margin-bottom:10px;color:var(--amber)">⚠️ Anticheat Flags</div>'+
+      ac.map(r=>`<div class="flag-box"><strong>${r.player_name||'?'}</strong> — ${r.flag_type} <span style="color:var(--muted);float:right">${ts(r.timestamp)}</span></div>`).join('');
+  } else {
+    flagsEl.innerHTML='<div class="info-box">✅ No anticheat flags detected in loaded data.</div>';
+  }
+}
+
+// ══════════════════════════════════════════
+// MONEY
+// ══════════════════════════════════════════
+let moneyPage=1, moneyFiltered=[];
+function renderMoney(p){
+  if(p) moneyPage=p;
+  const q=document.getElementById('money-q').value;
+  const op=document.getElementById('money-op').value;
+  const type=document.getElementById('money-type').value;
+  const reason=document.getElementById('money-reason').value.toLowerCase();
+  const minAmt=+document.getElementById('money-min').value||0;
+  moneyFiltered=DB.money.filter(r=>{
+    if(op && r.money_op!==op) return false;
+    if(type && r.money_type!==type) return false;
+    if(reason && !r.reason.toLowerCase().includes(reason)) return false;
+    if(minAmt && (r.money_amount||0)<minAmt) return false;
+    if(q){
+      const lq=q.toLowerCase();
+      if(![r.player_name,r.citizen_id,r.reason,r.money_op].some(v=>String(v||'').toLowerCase().includes(lq))) return false;
+    }
+    return true;
+  });
+  document.getElementById('money-count').textContent=`${moneyFiltered.length.toLocaleString()} transactions`;
+  const slice=moneyFiltered.slice((moneyPage-1)*PAGE_SIZE, moneyPage*PAGE_SIZE);
+  document.getElementById('money-body').innerHTML=slice.map(r=>`<tr>
+    <td class="ts">${ts(r.timestamp)}</td>
+    <td>${r.player_name||'-'}</td>
+    <td class="mono">${r.citizen_id||'-'}</td>
+    <td>${badge(r.money_op||'-', r.money_op==='AddMoney'?'add':r.money_op==='RemoveMoney'?'remove':'info')}</td>
+    <td style="color:${r.money_op==='AddMoney'?'var(--green)':'var(--red)'};font-weight:500">${fmtMoney(r.money_amount)}</td>
+    <td>${r.money_type?`<span class="badge badge-info">${r.money_type}</span>`:'-'}</td>
+    <td class="mono">${fmtMoney(r.balance_after)}</td>
+    <td>${r.reason||'-'}</td>
+    <td class="mono">${fmtCoord(r.coord_x,r.coord_y)}</td>
+  </tr>`).join('');
+  buildPager(moneyFiltered.length, moneyPage, 'renderMoney', 'money-pager');
+}
+
+// ══════════════════════════════════════════
+// INVENTORY
+// ══════════════════════════════════════════
+let invPage=1, invFiltered=[];
+function renderInventory(p){
+  if(p) invPage=p;
+  const q=document.getElementById('inv-q').value.toLowerCase();
+  const action=document.getElementById('inv-action').value;
+  const illegal=document.getElementById('inv-illegal').checked;
+  invFiltered=DB.inventory.filter(r=>{
+    if(action && r.item_action!==action) return false;
+    if(illegal && !r.is_illegal) return false;
+    if(q && !([r.item_name,r.inventory_id,r.item_label].some(v=>String(v||'').toLowerCase().includes(q)))) return false;
+    return true;
+  });
+  document.getElementById('inv-count').textContent=`${invFiltered.length.toLocaleString()} events`;
+  const slice=invFiltered.slice((invPage-1)*PAGE_SIZE, invPage*PAGE_SIZE);
+  document.getElementById('inv-body').innerHTML=slice.map(r=>`<tr ${r.is_illegal?'class="flag-row"':''}>
+    <td class="ts">${ts(r.timestamp)}</td>
+    <td>${badge(r.item_action||'-', r.item_action==='Added'?'add':r.item_action==='Removed'?'remove':'move')}</td>
+    <td class="mono">${r.item_name||'-'}</td>
+    <td style="font-weight:500">${r.item_amount!=null?r.item_amount:'-'}</td>
+    <td style="color:var(--muted)">${r.item_final!=null?r.item_final:'-'}</td>
+    <td class="mono" style="color:var(--muted)">${r.inventory_id||'-'}</td>
+    <td>${r.item_label||'-'}</td>
+    <td>${r.is_illegal?'<span class="badge badge-flag">⚠️ Yes</span>':''}</td>
+  </tr>`).join('');
+  buildPager(invFiltered.length, invPage, 'renderInventory', 'inv-pager');
+}
+
+// ══════════════════════════════════════════
+// DEATHS
+// ══════════════════════════════════════════
+let deathPage=1, deathFiltered=[];
+function renderDeaths(p){
+  if(p) deathPage=p;
+  const q=document.getElementById('death-q').value.toLowerCase();
+  const type=document.getElementById('death-type').value;
+  deathFiltered=DB.deaths.filter(r=>{
+    if(type==='pvp' && r.is_suicide) return false;
+    if(type==='suicide' && !r.is_suicide) return false;
+    if(q && !([r.victim_name,r.killer_name,r.victim_cid,r.weapon_label].some(v=>String(v||'').toLowerCase().includes(q)))) return false;
+    return true;
+  });
+  document.getElementById('death-count').textContent=`${deathFiltered.length.toLocaleString()} deaths`;
+  const slice=deathFiltered.slice((deathPage-1)*PAGE_SIZE, deathPage*PAGE_SIZE);
+  document.getElementById('death-body').innerHTML=slice.map(r=>`<tr>
+    <td class="ts">${ts(r.timestamp)}</td>
+    <td>${r.victim_name||'-'}</td>
+    <td class="mono">${r.victim_cid||'-'}</td>
+    <td>${r.victim_gang&&r.victim_gang!=='none'?r.victim_gang:'-'}</td>
+    <td>${r.killer_name||'<span style="color:var(--muted)">—</span>'}</td>
+    <td>${r.weapon_label||'-'}</td>
+    <td>${r.is_suicide?badge('Suicide','remove'):badge('PvP','flag')}</td>
+    <td class="mono">${fmtCoord(r.coord_x,r.coord_y)}</td>
+  </tr>`).join('');
+  buildPager(deathFiltered.length, deathPage, 'renderDeaths', 'death-pager');
+}
+
+// ══════════════════════════════════════════
+// CONNECTIONS
+// ══════════════════════════════════════════
+let connPage=1, connFiltered=[];
+function renderConnections(p){
+  if(p) connPage=p;
+  const q=document.getElementById('conn-q').value.toLowerCase();
+  const type=document.getElementById('conn-type').value;
+  const crash=document.getElementById('conn-crash').checked;
+  connFiltered=DB.connections.filter(r=>{
+    if(type && r.event_type!==type) return false;
+    if(crash && !/crash/i.test(r.disconnect_reason||'')) return false;
+    if(q && !([r.player_name,r.citizen_id,r.steam_hex,r.disconnect_reason].some(v=>String(v||'').toLowerCase().includes(q)))) return false;
+    return true;
+  });
+  document.getElementById('conn-count').textContent=`${connFiltered.length.toLocaleString()} events`;
+  const slice=connFiltered.slice((connPage-1)*PAGE_SIZE, connPage*PAGE_SIZE);
+  document.getElementById('conn-body').innerHTML=slice.map(r=>`<tr>
+    <td class="ts">${ts(r.timestamp)}</td>
+    <td>${r.player_name||'-'}</td>
+    <td class="mono">${r.citizen_id||'-'}</td>
+    <td>${badge(r.event_type||'-', r.event_type==='Joined'?'joined':'left')}</td>
+    <td style="color:var(--muted)">${r.disconnect_reason||'-'}</td>
+    <td class="mono" style="color:var(--muted);font-size:10px">${r.steam_hex||'-'}</td>
+    <td class="mono">${fmtCoord(r.coord_x,r.coord_y)}</td>
+  </tr>`).join('');
+  buildPager(connFiltered.length, connPage, 'renderConnections', 'conn-pager');
+}
+
+// ══════════════════════════════════════════
+// HEIST REP
+// ══════════════════════════════════════════
+let hrPage=1, hrFiltered=[];
+function renderHeistrep(p){
+  if(p) hrPage=p;
+  const q=document.getElementById('hr-q').value.toLowerCase();
+  hrFiltered=DB.heistrep.filter(r=>{
+    if(q && !([r.player_name,r.citizen_id,r.rep_source].some(v=>String(v||'').toLowerCase().includes(q)))) return false;
+    return true;
+  });
+  // top earners metric
+  const byPlayer={};
+  hrFiltered.forEach(r=>{ if(r.citizen_id) byPlayer[r.citizen_id]=(byPlayer[r.citizen_id]||{name:r.player_name,total:0,count:0}); byPlayer[r.citizen_id].total+=(r.rep_gained||0); byPlayer[r.citizen_id].count++; });
+  const top=Object.values(byPlayer).sort((a,b)=>b.total-a.total).slice(0,3);
+  document.getElementById('hr-metrics').innerHTML=top.map(p=>`<div class="metric"><div class="metric-label">${p.name}</div><div class="metric-value purple" style="color:var(--purple)">${p.total.toFixed(1)} rep</div></div>`).join('');
+  document.getElementById('hr-count').textContent=`${hrFiltered.length.toLocaleString()} events`;
+  const slice=hrFiltered.slice((hrPage-1)*PAGE_SIZE, hrPage*PAGE_SIZE);
+  document.getElementById('hr-body').innerHTML=slice.map(r=>`<tr>
+    <td class="ts">${ts(r.timestamp)}</td>
+    <td>${r.player_name||'-'}</td>
+    <td class="mono">${r.citizen_id||'-'}</td>
+    <td style="font-weight:500;color:var(--purple)">+${r.rep_gained||0}</td>
+    <td>${r.rep_source||'-'}</td>
+    <td class="mono">${r.rep_total!=null?r.rep_total:'-'}</td>
+  </tr>`).join('');
+  buildPager(hrFiltered.length, hrPage, 'renderHeistrep', 'hr-pager');
+}
+
+// ══════════════════════════════════════════
+// BOOSTING
+// ══════════════════════════════════════════
+let boostPage=1, boostFiltered=[];
+function renderBoosting(p){
+  if(p) boostPage=p;
+  const q=document.getElementById('boost-q').value.toLowerCase();
+  boostFiltered=DB.boosting.filter(r=>{
+    if(q && !([r.player_name,r.citizen_id,r.vehicle,r.boost_action].some(v=>String(v||'').toLowerCase().includes(q)))) return false;
+    return true;
+  });
+  document.getElementById('boost-count').textContent=`${boostFiltered.length.toLocaleString()} events`;
+  const slice=boostFiltered.slice((boostPage-1)*PAGE_SIZE, boostPage*PAGE_SIZE);
+  document.getElementById('boost-body').innerHTML=slice.map(r=>`<tr>
+    <td class="ts">${ts(r.timestamp)}</td>
+    <td>${r.boost_action||'-'}</td>
+    <td>${r.player_name||'-'}</td>
+    <td class="mono">${r.vehicle||'-'}</td>
+    <td>${r.vehicle_class||'-'}</td>
+    <td style="color:var(--green);font-weight:500">${r.payout!=null?'$'+r.payout:'-'}</td>
+    <td>${r.rep!=null?r.rep:'-'}</td>
+    <td class="mono">${r.contract_id||'-'}</td>
+  </tr>`).join('');
+  buildPager(boostFiltered.length, boostPage, 'renderBoosting', 'boost-pager');
+}
+
+// ══════════════════════════════════════════
+// 911 CALLS
+// ══════════════════════════════════════════
+let callsPage=1, callsFiltered=[];
+function renderCalls(p){
+  if(p) callsPage=p;
+  const q=document.getElementById('calls-q').value.toLowerCase();
+  const anonOnly=document.getElementById('calls-anon').checked;
+  callsFiltered=DB.calls.filter(r=>{
+    if(anonOnly && !r.is_anonymous) return false;
+    if(q && !([r.caller_name,r.citizen_id,r.call_message].some(v=>String(v||'').toLowerCase().includes(q)))) return false;
+    return true;
+  });
+  document.getElementById('calls-count').textContent=`${callsFiltered.length.toLocaleString()} calls`;
+  const slice=callsFiltered.slice((callsPage-1)*PAGE_SIZE, callsPage*PAGE_SIZE);
+  document.getElementById('calls-body').innerHTML=slice.map(r=>`<tr>
+    <td class="ts">${ts(r.timestamp)}</td>
+    <td>${r.caller_name||'-'}</td>
+    <td class="mono">${r.citizen_id||'-'}</td>
+    <td>${r.is_anonymous?badge('Anon','flag'):badge('Named','info')}</td>
+    <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis">${r.call_message||'-'}</td>
+    <td class="mono">${fmtCoord(r.coord_x,r.coord_y)}</td>
+  </tr>`).join('');
+  buildPager(callsFiltered.length, callsPage, 'renderCalls', 'calls-pager');
+}
+
+// ══════════════════════════════════════════
+// ANTICHEAT
+// ══════════════════════════════════════════
+function renderAnticheat(){
+  const el=document.getElementById('ac-content');
+  if(!DB.anticheat.length){
+    el.innerHTML='<div class="info-box">✅ No anticheat flags detected in the loaded data.</div>';
+    return;
+  }
+  el.innerHTML=`<div class="flag-box" style="margin-bottom:16px"><strong>⚠️ ${DB.anticheat.length} flag(s) detected</strong></div>`+
+    DB.anticheat.map(r=>`
+      <div class="flag-box">
+        <strong>${r.player_name||'?'}</strong>
+        <span style="float:right;color:var(--muted);font-family:var(--mono);font-size:11px">${ts(r.timestamp)}</span><br>
+        <span style="color:var(--amber)">${r.flag_type}</span><br>
+        <span style="color:var(--muted);font-family:var(--mono);font-size:11px">Steam: ${r.steam_hex||'?'} &nbsp;|&nbsp; Discord: ${r.discord_id||'?'}</span><br>
+        <span style="color:var(--muted);font-size:12px;display:block;margin-top:6px">${r.flag_detail}</span>
+      </div>`).join('');
+}
+
+// ══════════════════════════════════════════
+// REFUNDS
+// ══════════════════════════════════════════
+function findRefundPairs(){
+  const mech=DB.money.filter(r=>r.reason&&/mechanic-system/i.test(r.reason)&&['AddMoney','RemoveMoney'].includes(r.money_op));
+  const removes=mech.filter(r=>r.money_op==='RemoveMoney');
+  const adds=mech.filter(r=>r.money_op==='AddMoney');
+  const usedIdx=new Set();
+  const pairs=[];
+  for(const rem of removes){
+    const remTime=new Date(rem.timestamp).getTime();
+    const match=adds.find((a,i)=>{
+      if(usedIdx.has(i)) return false;
+      if(a.citizen_id!==rem.citizen_id) return false;
+      if(Math.abs((a.money_amount||0)-(rem.money_amount||0))>0.01) return false;
+      const aTime=new Date(a.timestamp).getTime();
+      return aTime>=remTime && aTime<=remTime+3600000;
+    });
+    if(match){
+      const idx=adds.indexOf(match);
+      usedIdx.add(idx);
+      const diffMs=new Date(match.timestamp)-new Date(rem.timestamp);
+      const mins=Math.floor(diffMs/60000), secs=Math.floor((diffMs%60000)/1000);
+      pairs.push({
+        player_name:  rem.player_name,
+        citizen_id:   rem.citizen_id,
+        amount:       rem.money_amount,
+        money_type:   rem.money_type,
+        charged_at:   rem.timestamp,
+        refunded_at:  match.timestamp,
+        time_between: `${mins}m ${secs}s`,
+        balance_charge: rem.balance_after,
+        balance_refund: match.balance_after,
+      });
+    }
+  }
+  return pairs;
+}
+
+function renderRefunds(){
+  const q=document.getElementById('ref-q').value.toLowerCase();
+  const minAmt=+document.getElementById('ref-min').value||0;
+  const pairs=findRefundPairs();
+  const filtered=pairs.filter(p=>{
+    if(minAmt && (p.amount||0)<minAmt) return false;
+    if(q && !([p.player_name,p.citizen_id].some(v=>String(v||'').toLowerCase().includes(q)))) return false;
+    return true;
+  });
+
+  const total=filtered.reduce((s,p)=>s+(p.amount||0),0);
+  const unique=[...new Set(filtered.map(p=>p.citizen_id))].length;
+  document.getElementById('ref-metrics').innerHTML=`
+    <div class="metric"><div class="metric-label">Refund Pairs</div><div class="metric-value amber">${filtered.length}</div></div>
+    <div class="metric"><div class="metric-label">Total Refunded</div><div class="metric-value amber">${fmtMoney(total)}</div></div>
+    <div class="metric"><div class="metric-label">Unique Players</div><div class="metric-value">${unique}</div></div>
+    <div class="metric"><div class="metric-label">Time Window</div><div class="metric-value" style="font-size:14px">1 hour</div></div>
+  `;
+
+  if(!filtered.length){
+    document.getElementById('ref-content').innerHTML='<div class="info-box">✅ No mechanic refund patterns detected.</div>';
+    return;
+  }
+
+  document.getElementById('ref-content').innerHTML=filtered.map(p=>`
+    <div class="refund-pair">
+      <div class="refund-header">
+        <div>
+          <div class="refund-player">${p.player_name||'?'} <span class="mono" style="color:var(--muted)">${p.citizen_id||''}</span></div>
+          <div class="refund-timeline">
+            <span>${ts(p.charged_at)}</span>
+            <span class="refund-arrow">→ refunded ${p.time_between} later →</span>
+            <span>${ts(p.refunded_at)}</span>
+          </div>
+        </div>
+        <div class="refund-amount">${fmtMoney(p.amount)}</div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);font-family:var(--mono)">
+        Via ${p.money_type||'?'} &nbsp;|&nbsp; Balance after charge: ${fmtMoney(p.balance_charge)} &nbsp;|&nbsp; Balance after refund: ${fmtMoney(p.balance_refund)}
+      </div>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════
+// PLAYER SEARCH
+// ══════════════════════════════════════════
+let playerQuery='';
+function renderPlayer(){
+  playerQuery=document.getElementById('player-q').value.trim();
+  const q=playerQuery.toLowerCase();
+  if(!q){
+    document.getElementById('player-card').innerHTML='<div style="color:var(--muted);font-size:13px">Enter a player name or citizen ID to search.</div>';
+    document.getElementById('player-tabs').style.display='none';
+    return;
+  }
+
+  // Find best connection match for identity card
+  const match=DB.connections.find(r=>
+    r.event_type==='Joined' && (
+      (r.player_name||'').toLowerCase().includes(q) ||
+      (r.citizen_id||'').toLowerCase().includes(q)
+    )
+  );
+
+  // Parse inventory from joined message
+  let inventoryItems=[], phone='', firstname='', lastname='';
+  if(match && match.raw_msg){
+    const jstart=match.raw_msg.indexOf('[');
+    if(jstart!==-1){
+      try{
+        const items=JSON.parse(match.raw_msg.substring(jstart));
+        items.forEach(it=>{
+          const data=it.data||{};
+          const info=it.info||{};
+          if(info.lbPhoneNumber && !phone) phone=String(info.lbPhoneNumber);
+          if(it.name==='id_card' && typeof info==='object'){
+            firstname=info.firstname||'';
+            lastname=info.lastname||'';
+          }
+          inventoryItems.push({
+            slot:   it.slot,
+            name:   it.name,
+            label:  data.label||it.name,
+            amount: it.amount||1,
+            cat:    data.category||'',
+            weight: data.weight||0,
+            illegal:/illegal/i.test(data.description||''),
+          });
+        });
+      }catch(e){}
+    }
+  }
+
+  if(match){
+    document.getElementById('player-card').innerHTML=`
+      <div class="player-card">
+        <div class="player-name">${match.player_name||'?'}</div>
+        <div style="font-size:12px;color:var(--muted)">Last seen: ${ts(match.timestamp)}</div>
+        <div class="player-meta">
+          <div class="player-meta-item"><span class="lbl">Citizen ID</span><span class="val">${match.citizen_id||'-'}</span></div>
+          <div class="player-meta-item"><span class="lbl">Server UID</span><span class="val">${match.server_uid||'-'}</span></div>
+          <div class="player-meta-item"><span class="lbl">Discord</span><span class="val">${match.discord_id||'-'}</span></div>
+          <div class="player-meta-item"><span class="lbl">Steam</span><span class="val">${match.steam_hex||'-'}</span></div>
+          ${firstname?`<div class="player-meta-item"><span class="lbl">Name</span><span class="val">${firstname} ${lastname}</span></div>`:''}
+          ${phone?`<div class="player-meta-item"><span class="lbl">Phone</span><span class="val">${phone}</span></div>`:''}
+        </div>
+        ${inventoryItems.length?`
+        <div style="margin-top:16px">
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px">Inventory snapshot (${inventoryItems.length} items)</div>
+          <div class="table-wrap"><table class="tbl">
+            <thead><tr><th>Slot</th><th>Item</th><th>Label</th><th>Qty</th><th>Category</th><th>Illegal</th></tr></thead>
+            <tbody>${inventoryItems.map(i=>`<tr ${i.illegal?'class="flag-row"':''}>
+              <td class="mono">${i.slot}</td><td class="mono">${i.name}</td><td>${i.label}</td>
+              <td>${i.amount}</td><td>${i.cat}</td>
+              <td>${i.illegal?'<span class="badge badge-flag">⚠️ Yes</span>':''}</td>
+            </tr>`).join('')}</tbody>
+          </table></div>
+        </div>`:''}
+      </div>`;
+  } else {
+    document.getElementById('player-card').innerHTML=`<div class="info-box">No connection log found for <strong>${playerQuery}</strong>. Showing activity data only.</div>`;
+  }
+
+  document.getElementById('player-tabs').style.display='flex';
+
+  // Money tab
+  const moneyR=DB.money.filter(r=>(r.player_name||'').toLowerCase().includes(q)||(r.citizen_id||'').toLowerCase().includes(q));
+  const earned=moneyR.filter(r=>r.money_op==='AddMoney').reduce((s,r)=>s+(r.money_amount||0),0);
+  const spent=moneyR.filter(r=>r.money_op==='RemoveMoney').reduce((s,r)=>s+(r.money_amount||0),0);
+  document.getElementById('pt-money').innerHTML=`
+    <div class="metrics" style="margin-bottom:16px">
+      <div class="metric"><div class="metric-label">Total Earned</div><div class="metric-value green">${fmtMoney(earned)}</div></div>
+      <div class="metric"><div class="metric-label">Total Spent</div><div class="metric-value red">${fmtMoney(spent)}</div></div>
+      <div class="metric"><div class="metric-label">Transactions</div><div class="metric-value">${moneyR.length}</div></div>
+    </div>
+    <div class="table-wrap"><table class="tbl"><thead><tr><th>Time</th><th>Operation</th><th>Amount</th><th>Via</th><th>Balance After</th><th>Reason</th></tr></thead>
+    <tbody>${moneyR.slice(0,200).map(r=>`<tr>
+      <td class="ts">${ts(r.timestamp)}</td>
+      <td>${badge(r.money_op||'-', r.money_op==='AddMoney'?'add':r.money_op==='RemoveMoney'?'remove':'info')}</td>
+      <td style="color:${r.money_op==='AddMoney'?'var(--green)':'var(--red)'};font-weight:500">${fmtMoney(r.money_amount)}</td>
+      <td>${r.money_type||'-'}</td><td class="mono">${fmtMoney(r.balance_after)}</td><td>${r.reason||'-'}</td>
+    </tr>`).join('')}</tbody></table></div>`;
+
+  // Inventory tab
+  const invR=DB.inventory.filter(r=>(r.inventory_id||'').toLowerCase().includes(q));
+  document.getElementById('pt-inv').innerHTML=`<div class="table-count">${invR.length} events</div>
+    <div class="table-wrap"><table class="tbl"><thead><tr><th>Time</th><th>Action</th><th>Item</th><th>Qty</th><th>Final</th><th>Inventory</th><th>Illegal</th></tr></thead>
+    <tbody>${invR.slice(0,200).map(r=>`<tr ${r.is_illegal?'class="flag-row"':''}>
+      <td class="ts">${ts(r.timestamp)}</td>
+      <td>${badge(r.item_action||'-', r.item_action==='Added'?'add':r.item_action==='Removed'?'remove':'move')}</td>
+      <td class="mono">${r.item_name||'-'}</td><td>${r.item_amount!=null?r.item_amount:'-'}</td>
+      <td>${r.item_final!=null?r.item_final:'-'}</td><td class="mono" style="color:var(--muted)">${r.inventory_id||'-'}</td>
+      <td>${r.is_illegal?'<span class="badge badge-flag">⚠️</span>':''}</td>
+    </tr>`).join('')}</tbody></table></div>`;
+
+  // Deaths tab
+  const deathR=DB.deaths.filter(r=>
+    (r.victim_name||'').toLowerCase().includes(q)||
+    (r.killer_name||'').toLowerCase().includes(q)||
+    (r.victim_cid||'').toLowerCase().includes(q)
+  );
+  document.getElementById('pt-deaths').innerHTML=`<div class="table-count">${deathR.length} events</div>
+    <div class="table-wrap"><table class="tbl"><thead><tr><th>Time</th><th>Victim</th><th>Killer</th><th>Weapon</th><th>Type</th><th>Coords</th></tr></thead>
+    <tbody>${deathR.slice(0,100).map(r=>`<tr>
+      <td class="ts">${ts(r.timestamp)}</td><td>${r.victim_name||'-'}</td><td>${r.killer_name||'-'}</td>
+      <td>${r.weapon_label||'-'}</td>
+      <td>${r.is_suicide?badge('Suicide','remove'):badge('PvP','flag')}</td>
+      <td class="mono">${fmtCoord(r.coord_x,r.coord_y)}</td>
+    </tr>`).join('')}</tbody></table></div>`;
+
+  // Connections tab
+  const connR=DB.connections.filter(r=>(r.player_name||'').toLowerCase().includes(q)||(r.citizen_id||'').toLowerCase().includes(q));
+  document.getElementById('pt-conn').innerHTML=`<div class="table-count">${connR.length} events</div>
+    <div class="table-wrap"><table class="tbl"><thead><tr><th>Time</th><th>Event</th><th>Reason</th><th>Coords</th></tr></thead>
+    <tbody>${connR.slice(0,100).map(r=>`<tr>
+      <td class="ts">${ts(r.timestamp)}</td>
+      <td>${badge(r.event_type||'-', r.event_type==='Joined'?'joined':'left')}</td>
+      <td>${r.disconnect_reason||'-'}</td><td class="mono">${fmtCoord(r.coord_x,r.coord_y)}</td>
+    </tr>`).join('')}</tbody></table></div>`;
+
+  // Heist Rep tab
+  const repR=DB.heistrep.filter(r=>(r.player_name||'').toLowerCase().includes(q)||(r.citizen_id||'').toLowerCase().includes(q));
+  const totalRep=repR.reduce((s,r)=>s+(r.rep_gained||0),0);
+  document.getElementById('pt-rep').innerHTML=`<div class="table-count">${repR.length} events — Total rep: ${totalRep.toFixed(1)}</div>
+    <div class="table-wrap"><table class="tbl"><thead><tr><th>Time</th><th>Rep Gained</th><th>Source</th><th>Total</th></tr></thead>
+    <tbody>${repR.slice(0,100).map(r=>`<tr>
+      <td class="ts">${ts(r.timestamp)}</td>
+      <td style="color:var(--purple);font-weight:500">+${r.rep_gained||0}</td>
+      <td>${r.rep_source||'-'}</td><td class="mono">${r.rep_total!=null?r.rep_total:'-'}</td>
+    </tr>`).join('')}</tbody></table></div>`;
+
+  // Boosting tab
+  const boostR=DB.boosting.filter(r=>(r.player_name||'').toLowerCase().includes(q)||(r.citizen_id||'').toLowerCase().includes(q));
+  document.getElementById('pt-boost').innerHTML=`<div class="table-count">${boostR.length} events</div>
+    <div class="table-wrap"><table class="tbl"><thead><tr><th>Time</th><th>Action</th><th>Vehicle</th><th>Payout</th><th>Rep</th></tr></thead>
+    <tbody>${boostR.slice(0,100).map(r=>`<tr>
+      <td class="ts">${ts(r.timestamp)}</td><td>${r.boost_action||'-'}</td>
+      <td class="mono">${r.vehicle||'-'}</td>
+      <td style="color:var(--green)">${r.payout!=null?'$'+r.payout:'-'}</td>
+      <td>${r.rep!=null?r.rep:'-'}</td>
+    </tr>`).join('')}</tbody></table></div>`;
+}
+
+// ══════════════════════════════════════════
+// TABS (Player Search)
+// ══════════════════════════════════════════
+function switchTab(id){
+  document.querySelectorAll('#player-tabs .tab-btn').forEach((b,i)=>{
+    const ids=['pt-money','pt-inv','pt-deaths','pt-conn','pt-rep','pt-boost'];
+    b.classList.toggle('active', ids[i]===id);
+  });
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.toggle('active', p.id===id));
+}
+</script>
+</body>
+</html>
